@@ -1,10 +1,23 @@
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-void main() {
+const Map<String, String> UNIT_ID = kReleaseMode
+    ? {
+        'android': 'ca-app-pub-3926120372825354/8684562738',
+      }
+    : {
+        'android': 'ca-app-pub-3940256099942544/6300978111',
+      };
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
+
   runApp(const Home());
 }
 
@@ -14,6 +27,7 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: _Main(),
     );
   }
@@ -152,6 +166,16 @@ class _MainState extends State<_Main> {
 
   @override
   Widget build(BuildContext context) {
+    BannerAd banner = BannerAd(
+      listener: BannerAdListener(
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {},
+        onAdLoaded: (_) {},
+      ),
+      size: AdSize.banner,
+      adUnitId: UNIT_ID['android']!,
+      request: const AdRequest(),
+    )..load();
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: SafeArea(
@@ -297,6 +321,13 @@ class _MainState extends State<_Main> {
                     ),
                   ],
                 ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 200,
+                child: AdWidget(ad: banner),
               ),
             ],
           ),
