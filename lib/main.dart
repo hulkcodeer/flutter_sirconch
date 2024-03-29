@@ -33,6 +33,7 @@ enum SendState {
 class _MainState extends State<_Main> {
   final TextEditingController _controller = TextEditingController();
   String _displayText = '';
+  bool _isConchBacklightVisible = false;
 
   var sendState = SendState.disabled;
 
@@ -72,7 +73,7 @@ class _MainState extends State<_Main> {
   ];
 
   String questionBtnTitle = "질문하기";
-  String imageName = 'images/btnQuestion.png';
+  String imageName = 'images/btnDisable.png';
 
   @override
   void dispose() {
@@ -221,6 +222,16 @@ class _MainState extends State<_Main> {
                       onPressed: () {
                         FocusScope.of(context).unfocus();
                         _updateDisplayText();
+
+                        setState(() {
+                          _isConchBacklightVisible = true;
+                        });
+
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          setState(() {
+                            _isConchBacklightVisible = false;
+                          });
+                        });
                       },
                       child: Stack(
                         alignment: Alignment.center,
@@ -240,15 +251,21 @@ class _MainState extends State<_Main> {
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        Image.asset(
-                          'images/conchBacklight.png',
-                          width: 285,
-                          height: 314,
-                        ),
-                        Image.asset(
-                          'images/conchNormal.png',
-                          width: 285,
-                          height: 314,
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          child: _isConchBacklightVisible
+                              ? Image.asset(
+                                  'images/conchBacklight.png',
+                                  key: const ValueKey('backlight'),
+                                  width: 285,
+                                  height: 314,
+                                )
+                              : Image.asset(
+                                  'images/conchNormal.png',
+                                  key: const ValueKey('normal'),
+                                  width: 285,
+                                  height: 314,
+                                ),
                         ),
                       ],
                     ),
