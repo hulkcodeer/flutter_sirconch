@@ -1,4 +1,4 @@
-package com.example.flutter_sirconch
+package com.mixdrops.flutter_sirconch
 
 import io.flutter.embedding.android.FlutterActivity
 
