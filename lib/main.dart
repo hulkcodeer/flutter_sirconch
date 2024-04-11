@@ -1,125 +1,338 @@
-import 'package:flutter/material.dart';
+import 'dart:math';
 
-void main() {
-  runApp(const MyApp());
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+const Map<String, String> UNIT_ID = kReleaseMode
+    ? {
+        'android': 'ca-app-pub-3926120372825354/8684562738',
+      }
+    : {
+        'android': 'ca-app-pub-3940256099942544/6300978111',
+      };
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
+
+  runApp(const Home());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class Home extends StatelessWidget {
+  const Home({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      home: _Main(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class _Main extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MainState createState() => _MainState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+enum SendState {
+  disabled,
+  question,
+  questionComplete,
+}
 
-  void _incrementCounter() {
+class _MainState extends State<_Main> {
+  final TextEditingController _controller = TextEditingController();
+  String _displayText = '';
+  bool _isConchBacklightVisible = false;
+
+  var sendState = SendState.disabled;
+
+  static const List<String> generalAnswer = [
+    "당장 시작해.",
+    "좋아.",
+    "그래.",
+    "나중에 해.",
+    "다시 한번 물어봐.",
+    "안돼.",
+    "놉.",
+    "하지마.",
+    "최.악.",
+    "가만히 있어.",
+    "그것도 안돼.",
+    "진행시켜.",
+    "고고.",
+    "오 좋은데?"
+  ];
+
+  static const List<String> foodAnswer = [
+    "먹지마.",
+    "먹어.",
+    "굶어.",
+    "응, 먹지마.",
+    "다시 한번 물어봐.",
+    "그래.",
+    "조금만 먹어"
+  ];
+
+  static const List<String> suicideAnswer = [
+    "그러지 마.",
+    "난 니가 좋아.",
+    "좀만 더 버텨봐.",
+    "내일 다시 물어봐.",
+    "살아있으면\n곧 좋아질거야."
+  ];
+
+  String questionBtnTitle = "질문하기";
+  String imageName = 'images/btnDisable.png';
+
+  @override
+  void dispose() {
+    _controller.dispose(); // 위젯이 소멸될 때 컨트롤러를 정리
+    super.dispose();
+  }
+
+  void _updateDisplayText() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      var txtStr = _controller.text;
+
+      if (sendState == SendState.questionComplete) {
+        _controller.text = '';
+        sendState = SendState.disabled;
+        _modifyChangeState();
+        return;
+      }
+
+      sendState = SendState.question;
+      _modifyChangeState();
+
+      if (txtStr.isEmpty) {
+        sendState = SendState.disabled;
+      } else {
+        if (txtStr.contains("먹어") || txtStr.contains("먹을")) {
+          _displayText = foodAnswer[Random().nextInt(foodAnswer.length)];
+        } else if (txtStr.contains("자살") ||
+            txtStr.contains("죽을") ||
+            txtStr.contains("죽어") ||
+            txtStr.contains("죽고")) {
+          _displayText = suicideAnswer[Random().nextInt(suicideAnswer.length)];
+        } else {
+          _displayText = generalAnswer[Random().nextInt(generalAnswer.length)];
+        }
+        sendState = SendState.questionComplete;
+
+        _modifyChangeState();
+      }
     });
+  }
+
+  void _handelChangeTf() {
+    setState(() {
+      if (_controller.text.isEmpty) {
+        sendState = SendState.disabled;
+      } else {
+        sendState = SendState.question;
+      }
+
+      _modifyChangeState();
+    });
+  }
+
+  void _modifyChangeState() {
+    switch (sendState) {
+      case SendState.question:
+        questionBtnTitle = '질문하기';
+        imageName = 'images/btnQuestion.png';
+        break;
+
+      case SendState.questionComplete:
+        questionBtnTitle = '다시하기';
+        imageName = 'images/btnRefresh.png';
+        break;
+
+      case SendState.disabled:
+        questionBtnTitle = '질문하기';
+        imageName = 'images/btnDisable.png';
+        break;
+
+      default:
+        questionBtnTitle = '질문하기';
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    BannerAd banner = BannerAd(
+      listener: BannerAdListener(
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {},
+        onAdLoaded: (_) {},
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      size: AdSize.banner,
+      adUnitId: UNIT_ID['android']!,
+      request: const AdRequest(),
+    )..load();
+
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () => {FocusScope.of(context).unfocus()},
+          child: Stack(
+            children: [
+              Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('images/bgImgNight.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "소라고둥님께 물어봐",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 42,
+                        right: 42,
+                        top: 22,
+                        bottom: 24,
+                      ),
+                      child: TextField(
+                        onTap: () {
+                          setState(() {
+                            sendState = SendState.question;
+                          });
+                        },
+                        onChanged: (text) {
+                          _handelChangeTf();
+                        },
+                        controller: _controller,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500),
+                        decoration: InputDecoration(
+                          labelText: '',
+                          border: const OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(6)),
+                              borderSide:
+                                  BorderSide(width: 1, color: Colors.white)),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.4),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: Colors.transparent),
+                      onPressed: () {
+                        FocusScope.of(context).unfocus();
+                        _updateDisplayText();
+
+                        setState(() {
+                          _isConchBacklightVisible = true;
+                        });
+
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          setState(() {
+                            _isConchBacklightVisible = false;
+                          });
+                        });
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Image.asset(
+                            imageName,
+                            width: 80,
+                            height: 80,
+                          ),
+                          Text(
+                            questionBtnTitle,
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 500),
+                          child: _isConchBacklightVisible
+                              ? Image.asset(
+                                  'images/conchBacklight.png',
+                                  key: const ValueKey('backlight'),
+                                  width: 285,
+                                  height: 314,
+                                )
+                              : Image.asset(
+                                  'images/conchNormal.png',
+                                  key: const ValueKey('normal'),
+                                  width: 285,
+                                  height: 314,
+                                ),
+                        ),
+                      ],
+                    ),
+                    Transform.translate(
+                      offset: const Offset(0, -83),
+                      child: sendState == SendState.questionComplete
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Image.asset(
+                                  'images/imgBubble.png',
+                                  width: 237,
+                                  height: 116,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 16),
+                                  child: Text(
+                                    _displayText,
+                                    style: const TextStyle(
+                                        fontSize: 22, color: Color(0xFF0a071f)),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox(
+                              width: 237,
+                              height: 116,
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 200,
+                child: AdWidget(ad: banner),
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
