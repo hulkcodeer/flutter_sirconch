@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="flutter_sirconch"
+        android:label="소라고둥님께 물어봐"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
